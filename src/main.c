@@ -40,10 +40,10 @@ int cat(FILE* fout, int count)
         sprintf(argstring + strlen(argstring), ", _%d", i);
         sprintf(catstring + strlen(catstring), "##_%d", i);
         sprintf(macrostring + strlen(macrostring), ", __CAT%d", count - i + 2);
-        fprintf(fout, "#define CAT%d_I(%s) %s\n#define CAT%d(%s) CAT%d_I(%s)\n",
+        fprintf(fout, "#define __CAT%d_I(%s) %s\n#define __CAT%d(%s) __CAT%d_I(%s)\n",
             i, argstring, catstring, i, argstring, i, argstring);
     }
-    fprintf(fout, "\n#define __CAT_SELECT(%s, NAME, ...) NAME\n\n", argstring);
+    fprintf(fout, "\n#define __CAT_SELECT(_0, %s, NAME, ...) NAME\n\n", argstring);
     fprintf(fout, "// Concatenates the values of up to %d symbols.\n", count);
     fprintf(fout, "#define CAT(...) __CAT_SELECT(,##__VA_ARGS__%s, IDENTITY, EMPTY)(__VA_ARGS__)\n", macrostring);
     for (int i = 0; i < count; ++i);

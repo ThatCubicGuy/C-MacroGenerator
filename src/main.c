@@ -108,7 +108,15 @@ int nargs(FILE* fout, int count)
 
 int join(FILE* fout, int count)
 {
-
+    printf("Generating join macro of up to %d uses.\n", count);
+    fprintf(fout, "#define __JOIN_%d(SEPARATOR, _1, ...) CAT(SEPARATOR, _1)\n", count - 1);
+    for (int i = count - 1; i > 1; --i) {
+        fprintf(fout, "#define __JOIN_%d(SEPARATOR, _1, ...) "
+            "CAT(CAT(SEPARATOR, _1), __VA_OPT__(__JOIN_%d(SEPARATOR, __VA_ARGS__)))\n", i - 1, i);
+    }
+    fprintf(fout, "// Joins the values of each argument together with the given separator, up to %d times.\n", count);
+    fprintf(fout, "#define JOIN(SEPARATOR, _1, ...) CAT(_1, __VA_OPT__(__JOIN_1(SEPARATOR, __VA_ARGS__)))\n");
+    return 0;
 }
 
 int main(int argc, const char** argv)
@@ -126,12 +134,13 @@ int main(int argc, const char** argv)
             if (!strcmp(argv[2], "foreach_args") ||
                 !strcmp(argv[2], "foreachargs")) return foreach_args(thing, count);
             if (!strcmp(argv[2], "nargs")) return nargs(thing, count);
+            if (!strcmp(argv[2], "join")) return join(thing, count);
             fprintf(stderr, "Unknown macro: `%s`.\n", argv[2]);
             if (strstr(argv[2], "foreach")) fprintf(stderr, "Did you mean `foreach_args`?\n");
             return 404;
         }
-        return dec(thing, count);
     }
+    return dec(thing, count);
     return 0;
 }
 

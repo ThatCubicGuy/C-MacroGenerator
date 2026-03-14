@@ -7,7 +7,7 @@ TARGETS:=main
 OBJS:=${TARGETS:%=bin/%.o}
 
 build: ${OBJS}
-	${CC} ${CFLAGS} $(wildcard bin/*) -o bin/gen-macros
+	${CC} ${CFLAGS} $(wildcard bin/*.o) -o bin/gen-macros
 
 compile: ${OBJS}
 

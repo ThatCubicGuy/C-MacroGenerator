@@ -53,10 +53,10 @@ int cat(FILE* fout, int count)
 int select(FILE* fout, int count)
 {
     printf("Generating select macro of up to %d uses.\n", count);
-    char argstring[1024] = "id";
+    char argstring[1024] = "";
     for (int i = 0; i < count; ++i) {
-        sprintf(argstring + strlen(argstring), ", _%d", i);
-        fprintf(fout, "#define __SELECT_%d(%s) id\n", i, argstring);
+        fprintf(fout, "#define __SELECT_%d(%sid, ...) id\n", i, argstring);
+        sprintf(argstring + strlen(argstring), "_%d, ", i);
     }
     fprintf(fout, "// Selects the item at a zero-based index"
             " in the variadic argument list. Up to %d parameters.\n", count);
@@ -89,6 +89,28 @@ int foreach_args(FILE* fout, int count)
     return 0;
 }
 
+int nargs(FILE* fout, int count)
+{
+    printf("Generating number of args macro of up to %d args.\n", count);
+    fprintf(fout, "#define __NARGS_SELECT(");
+    for (int i = count; i > 0; --i) {
+        fprintf(fout, "_%d, ", i);
+    }
+    fprintf(fout, "N, ...) N\n");
+    fprintf(fout, "// Get the number of variadic arguments. Up to 32 arguments.\n");
+    fprintf(fout, "#define NARGS(...) __NARGS_SELECT(__VA_ARGS__ __VA_OPT__(,) %d", count);
+    for (int i = count; i > 0; --i) {
+        fprintf(fout, ", %d", i - 1);
+    }
+    fprintf(fout, ")\n");
+    return 0;
+}
+
+int join(FILE* fout, int count)
+{
+
+}
+
 int main(int argc, const char** argv)
 {
     FILE* thing = fopen("macros.h", "wt");
@@ -103,6 +125,7 @@ int main(int argc, const char** argv)
             if (!strcmp(argv[2], "foreach")) return foreach(thing, count);
             if (!strcmp(argv[2], "foreach_args") ||
                 !strcmp(argv[2], "foreachargs")) return foreach_args(thing, count);
+            if (!strcmp(argv[2], "nargs")) return nargs(thing, count);
             fprintf(stderr, "Unknown macro: `%s`.\n", argv[2]);
             if (strstr(argv[2], "foreach")) fprintf(stderr, "Did you mean `foreach_args`?\n");
             return 404;

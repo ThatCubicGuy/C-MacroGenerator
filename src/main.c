@@ -1,15 +1,23 @@
+#//vim:fdm=marker
 #include <stdio.h>
 #include <string.h>
 
+#define MAXSTRLEN 2048
+
 int int_Parse(const char* str)
 {
-    int n = 0;
+    int n = 0, f = 1;
+    if (str[0] == '-') {
+        str += 1;
+        f = -1;
+    }
     for (int i = 0; '0' <= str[i] && str[i] <= '9'; ++i) {
         n = n * 10 + (str[i] - '0');
     }
-    return n;
+    return n * f;
 }
 
+#pragma region Dec {{{
 int dec(FILE* fout, int count)
 {
     printf("Generating decrement macro of up to %d uses.\n", count);
@@ -19,7 +27,9 @@ int dec(FILE* fout, int count)
     }
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Inc {{{
 int inc(FILE* fout, int count)
 {
     printf("Generating increment macro of up to %d uses.\n", count);
@@ -29,12 +39,14 @@ int inc(FILE* fout, int count)
     fprintf(fout, "#define INC_%d %d\n", count, count);
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Cat {{{
 int cat(FILE* fout, int count)
 {
-    char argstring[1024] = "_1";
-    char catstring[1024] = "_1";
-    char macrostring[1024] = "";
+    char argstring[MAXSTRLEN] = "_1";
+    char catstring[MAXSTRLEN] = "_1";
+    char macrostring[MAXSTRLEN] = "";
     printf("Generating concat macro of up to %d uses.\n", count);
     for (int i = 2; i <= count; ++i) {
         sprintf(argstring + strlen(argstring), ", _%d", i);
@@ -49,11 +61,13 @@ int cat(FILE* fout, int count)
     for (int i = 0; i < count; ++i);
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Select {{{
 int select(FILE* fout, int count)
 {
     printf("Generating select macro of up to %d uses.\n", count);
-    char argstring[1024] = "";
+    char argstring[MAXSTRLEN] = "";
     for (int i = 0; i < count; ++i) {
         fprintf(fout, "#define __SELECT_%d(%sid, ...) id\n", i, argstring);
         sprintf(argstring + strlen(argstring), "_%d, ", i);
@@ -63,7 +77,9 @@ int select(FILE* fout, int count)
     fprintf(fout, "#define SELECT(INDEX, ...) CAT(__SELECT_, INDEX)(__VA_ARGS__)\n");
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Foreach {{{
 int foreach(FILE* fout, int count)
 {
     printf("Generating foreach macro of up to %d uses.\n", count);
@@ -75,7 +91,9 @@ int foreach(FILE* fout, int count)
     fprintf(fout, "#define FOREACH(id, ...) __VA_OPT__(EVAL(DEFER(CAT(__FOREACH_, NARGS(__VA_ARGS__)))(id, __VA_ARGS__)))\n");
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Foreach_Args {{{
 int foreach_args(FILE* fout, int count)
 {
     printf("Generating foreach with base arguments macro of up to %d uses.\n", count);
@@ -88,7 +106,9 @@ int foreach_args(FILE* fout, int count)
     fprintf(fout, "#define FOREACH_WITH_ARGS(id, BASEARGS, ...) __VA_OPT__(EVAL(DEFER(CAT(__FOREACH_ARGS_, NARGS(__VA_ARGS__)))(id, BASEARGS, __VA_ARGS__)))\n");
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region NArgs {{{
 int nargs(FILE* fout, int count)
 {
     printf("Generating number of args macro of up to %d args.\n", count);
@@ -105,7 +125,9 @@ int nargs(FILE* fout, int count)
     fprintf(fout, ")\n");
     return 0;
 }
+#pragma endregion }}}
 
+#pragma region Join {{{
 int join(FILE* fout, int count)
 {
     printf("Generating join macro of up to %d uses.\n", count);
@@ -118,6 +140,7 @@ int join(FILE* fout, int count)
     fprintf(fout, "#define JOIN(SEPARATOR, _1, ...) CAT(_1, __VA_OPT__(__JOIN_1(SEPARATOR, __VA_ARGS__)))\n");
     return 0;
 }
+#pragma endregion }}}
 
 int main(int argc, const char** argv)
 {
@@ -125,6 +148,9 @@ int main(int argc, const char** argv)
     int count = 128;
     if (argc > 1) {
         count = int_Parse(argv[1]);
+        if (count < 0) {
+            printf("Please specify a positive number.");
+        }
         if (argc > 2) {
             if (!strcmp(argv[2], "dec")) return dec(thing, count);
             if (!strcmp(argv[2], "inc")) return inc(thing, count);
@@ -144,10 +170,13 @@ int main(int argc, const char** argv)
     return 0;
 }
 
+// Currently useless lmao
+
+#pragma region Cat (alphabetic) {{{
 int cat_alphabetic(FILE* fout, int count)
 {
-    char argstring[1024] = "a";
-    char catstring[1024] = "a";
+    char argstring[MAXSTRLEN] = "a";
+    char catstring[MAXSTRLEN] = "a";
     printf("Generating concat macro of up to %d uses.\n", count);
     for (int i = 2; i <= count; ++i) {
         sprintf(argstring + strlen(argstring), ", %c", 'a' + i - 1);
@@ -157,3 +186,36 @@ int cat_alphabetic(FILE* fout, int count)
     }
     return 0;
 }
+#pragma endregion }}}
+
+#pragma region Func {{{
+int func(FILE* fout, int count)
+{
+    printf("Generating func delegate macro of up to %d parameters.\n", count);
+    char argstring[MAXSTRLEN] = "T1";
+    fprintf(fout, "#define __FUNC0(NAME, TReturn) TReturn (*NAME)(void)\n");
+    for (int i = 1; i <= count; ++i) {
+        fprintf(fout, "#define __FUNC%d(NAME, TReturn, %s) TReturn (*NAME)(%s)\n", i, argstring, argstring);
+        sprintf(argstring + strlen(argstring), ", T%d", i + 1);
+    }
+    fprintf(fout, "// Defines a function that takes a certain amount of parameters and returns a value.\n");
+    fprintf(fout, "#define Func(TReturn, ...) typeof(CAT(__FUNC, NARGS(__VA_ARGS__))(, TReturn,##__VA_ARGS__))\n");
+    return 0;
+}
+#pragma endregion }}}
+
+#pragma region Action {{{
+int action(FILE* fout, int count)
+{
+    printf("Generating action delegate macro of up to %d parameters.", count);
+    char argstring[MAXSTRLEN] = "T1";
+    fprintf(fout, "#define __ACTION0(NAME) void (*NAME)(void)\n");
+    for (int i = 1; i <= count; ++i) {
+        fprintf(fout, "#define __ACTION%d(NAME, %s) void (*NAME)(%s)\n", i, argstring, argstring);
+        sprintf(argstring + strlen(argstring), ", T%d", i + 1);
+    }
+    fprintf(fout, "// Defines a function that takes a certain amount of parameters and does not return a value.\n");
+    fprintf(fout, "#define Action(...) typeof(CAT(__ACTION, NARGS(__VA_ARGS__))(,##__VA_ARGS__))\n");
+    return 0;
+}
+#pragma endregion }}}

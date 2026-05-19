@@ -301,11 +301,11 @@ int eval(FILE* fout, int count)
 #pragma region Trim {{{
 int trim(FILE* fout)
 {
-    printf("Generating trim macro.\n\033[33mDEPENDENCIES\033[0m: DEC, EXTRACT, NARGS, SELECT\n");
+    printf("Generating trim macro.\n\033[33mDEPENDENCIES\033[0m: DEC, TAKE, NARGS, SELECT\n");
     fprintf(fout, "#pragma region Trim {{{\n\n"
             "#define qAPPEND_COMMA(...) __VA_OPT__(__VA_ARGS__,)\n"
             "#define qPREPEND_COMMA(...) __VA_OPT__(,__VA_ARGS__)\n"
-            "#define TRIMEND(...) EXTRACT(DEC(NARGS(__VA_ARGS__)),__VA_ARGS__) qPREPEND_COMMA(SELECT(DEC(NARGS(__VA_ARGS__)),__VA_ARGS__))\n"
+            "#define TRIMEND(...) TAKE(DEC(NARGS(__VA_ARGS__)),__VA_ARGS__) qPREPEND_COMMA(SELECT(DEC(NARGS(__VA_ARGS__)),__VA_ARGS__))\n"
             "#define TRIMSTART(x, ...) qAPPEND_COMMA(x) __VA_ARGS__\n"
             "// Trim a list of leading / trailing commas.\n"
             "#define TRIM(...) TRIMEND(TRIMSTART(__VA_ARGS__))\n"

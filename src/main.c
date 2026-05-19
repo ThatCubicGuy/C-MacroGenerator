@@ -181,13 +181,13 @@ int join(FILE* fout, int count)
 {
     printf("Generating join macro of up to %d uses\n\033[33mDEPENDENCIES\033[0m: CAT", count);
     fprintf(fout, "#pragma region Join {{{\n\n");
-    fprintf(fout, "#define __JOIN_%d(SEPARATOR, _1, ...) CAT(SEPARATOR, _1)\n", count - 1);
+    fprintf(fout, "#define qJOIN_%d(SEPARATOR, _1, ...) CAT(SEPARATOR, _1)\n", count - 1);
     for (int i = count - 1; i > 1; --i) {
-        fprintf(fout, "#define __JOIN_%d(SEPARATOR, _1, ...) "
-            "CAT(CAT(SEPARATOR, _1), __VA_OPT__(__JOIN_%d(SEPARATOR, __VA_ARGS__)))\n", i - 1, i);
+        fprintf(fout, "#define qJOIN_%d(SEPARATOR, _1, ...) "
+            "CAT(CAT(SEPARATOR, _1), __VA_OPT__(qJOIN_%d(SEPARATOR, __VA_ARGS__)))\n", i - 1, i);
     }
     fprintf(fout, "// Joins the values of each argument together with the given separator, up to %d times.\n", count);
-    fprintf(fout, "#define JOIN(SEPARATOR, _1, ...) CAT(_1, __VA_OPT__(__JOIN_1(SEPARATOR, __VA_ARGS__)))\n");
+    fprintf(fout, "#define JOIN(SEPARATOR, _1, ...) CAT(_1, __VA_OPT__(qJOIN_1(SEPARATOR, __VA_ARGS__)))\n");
     fprintf(fout, "\n#pragma endregion }}}\n");
     return 0;
 }
